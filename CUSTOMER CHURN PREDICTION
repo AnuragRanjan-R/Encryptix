@@ -1,0 +1,74 @@
+# Customer churn is the percentage of customers that stopped using your company's product or service during a certain time frame.
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+
+data = pd.read_csv('Churn_Modelling.csv')
+
+
+data.drop(['RowNumber', 'CustomerId', 'Surname'], axis=1, inplace=True)
+
+
+X = data.drop('Exited', axis=1)
+y = data['Exited']
+
+# Preprocess categorical features using OneHotEncoding
+categorical_features = ['Geography', 'Gender']
+numerical_features = X.columns.difference(categorical_features)
+
+# Create a preprocessor with ColumnTransformer
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), numerical_features),
+        ('cat', OneHotEncoder(), categorical_features)
+    ])
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+logistic_regression = Pipeline(steps=[('preprocessor', preprocessor),
+                                      ('classifier', LogisticRegression(random_state=42))])
+
+random_forest = Pipeline(steps=[('preprocessor', preprocessor),
+                                ('classifier', RandomForestClassifier(random_state=42))])
+
+gradient_boosting = Pipeline(steps=[('preprocessor', preprocessor),
+                                    ('classifier', GradientBoostingClassifier(random_state=42))])
+
+
+logistic_regression.fit(X_train, y_train)
+random_forest.fit(X_train, y_train)
+gradient_boosting.fit(X_train, y_train)
+
+# Evaluate the models
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+    roc_auc = roc_auc_score(y_test, y_pred)
+    return accuracy, precision, recall, f1, roc_auc
+
+# Logistic Regression Evaluation
+log_reg_results = evaluate_model(logistic_regression, X_test, y_test)
+print(f"Logistic Regression - Accuracy: {log_reg_results[0]:.2f}, Precision: {log_reg_results[1]:.2f}, Recall: {log_reg_results[2]:.2f}, F1 Score: {log_reg_results[3]:.2f}, ROC AUC: {log_reg_results[4]:.2f}")
+
+# Random Forest Evaluation
+rf_results = evaluate_model(random_forest, X_test, y_test)
+print(f"Random Forest - Accuracy: {rf_results[0]:.2f}, Precision: {rf_results[1]:.2f}, Recall: {rf_results[2]:.2f}, F1 Score: {rf_results[3]:.2f}, ROC AUC: {rf_results[4]:.2f}")
+
+# Gradient Boosting Evaluation
+gb_results = evaluate_model(gradient_boosting, X_test, y_test)
+print(f"Gradient Boosting - Accuracy: {gb_results[0]:.2f}, Precision: {gb_results[1]:.2f}, Recall: {gb_results[2]:.2f}, F1 Score: {gb_results[3]:.2f}, ROC AUC: {gb_results[4]:.2f}")
+
