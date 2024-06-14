@@ -1,0 +1,107 @@
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+
+# Load the training and testing datasets
+train_data = pd.read_csv('Train.csv')
+test_data = pd.read_csv('Test.csv')
+
+# Display the first few rows of the training data to understand its structure
+print("Training Data:")
+print(train_data.head())
+
+# Display the first few rows of the testing data
+print("\nTesting Data:")
+print(test_data.head())
+
+
+# Function to preprocess the data
+def preprocess_data(df):
+
+    df['trans_date_trans_time'] = pd.to_datetime(df['trans_date_trans_time'])
+    df['hour'] = df['trans_date_trans_time'].dt.hour
+    df['day_of_week'] = df['trans_date_trans_time'].dt.dayofweek
+
+    df['log_amt'] = np.log(df['amt'] + 1)
+
+    drop_columns = ['trans_date_trans_time', 'cc_num', 'first', 'last', 'street', 'city', 'state', 'zip', 'lat', 'long', 'job', 'dob', 'trans_num', 'unix_time']
+    df = df.drop(columns=drop_columns)
+
+    return df
+
+train_data = preprocess_data(train_data)
+test_data = preprocess_data(test_data)
+
+X_train = train_data.drop(columns=['is_fraud'])
+y_train = train_data['is_fraud']
+
+X_test = test_data.drop(columns=['is_fraud'])
+y_test = test_data['is_fraud']
+
+# Display the preprocessed data
+print("\nPreprocessed Training Data:")
+print(X_train.head())
+
+print("\nPreprocessed Testing Data:")
+print(X_test.head())
+
+
+# Check for missing values in y_train
+print("Missing values in y_train:", y_train.isnull().sum())
+
+# Check for missing values in y_test
+print("Missing values in y_test:", y_test.isnull().sum())
+
+
+# Drop rows with missing target values
+train_data.dropna(subset=['is_fraud'], inplace=True)
+test_data.dropna(subset=['is_fraud'], inplace=True)
+
+# Recreate X_train, y_train, X_test, y_test after dropping NaNs
+X_train = train_data.drop(columns=['is_fraud'])
+y_train = train_data['is_fraud']
+
+X_test = test_data.drop(columns=['is_fraud'])
+y_test = test_data['is_fraud']
+
+# Impute missing values with median (example)
+median_target = train_data['is_fraud'].median()
+train_data['is_fraud'].fillna(median_target, inplace=True)
+test_data['is_fraud'].fillna(median_target, inplace=True)
+
+# Recreate X_train, y_train, X_test, y_test after imputing NaNs
+X_train = train_data.drop(columns=['is_fraud'])
+y_train = train_data['is_fraud']
+
+X_test = test_data.drop(columns=['is_fraud'])
+y_test = test_data['is_fraud']
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+
+# Create a pipeline with preprocessing and model
+pipeline = Pipeline(steps=[('preprocessor', preprocessor),
+                           ('classifier', RandomForestClassifier(random_state=42))])
+
+# Fit the model
+pipeline.fit(X_train, y_train)
+
+# Predict on the testing data
+y_pred = pipeline.predict(X_test)
+y_pred_proba = pipeline.predict_proba(X_test)[:, 1]  # Probability of class 1 (fraudulent)
+
+# Evaluate the model
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+print("\nROC AUC Score:")
+print(roc_auc_score(y_test, y_pred_proba))
