@@ -1,0 +1,81 @@
+pip install pandas scikit-learn
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+# Load the dataset
+file_path = 'Your_File_Path'
+
+# Read the dataset
+try:
+    df = pd.read_csv(file_path)
+    print("Dataset loaded successfully.")
+except Exception as e:
+    print(f"Error loading dataset: {e}")
+
+
+print(df.head())
+
+
+print("Checking for missing values...")
+print(df.isnull().sum())
+
+df.columns = ['label', 'message', 'label_num', 'Unnamed: 4', 'Unnamed: 5']
+
+# Map labels to binary values: spam -> 1, ham -> 0
+df['label'] = df['label'].map({'spam': 1, 'ham': 0})
+
+df.drop(columns=['label_num', 'Unnamed: 4', 'Unnamed: 5'], inplace=True)
+
+print(df.head())
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(df['message'], df['label'], test_size=0.2, random_state=42)
+
+# Initialize the TF-IDF Vectorizer
+tfidf = TfidfVectorizer(stop_words='english')
+X_train_tfidf = tfidf.fit_transform(X_train)
+X_test_tfidf = tfidf.transform(X_test)
+
+print("Data preprocessing completed.")
+
+# Function to train and evaluate the model
+def train_and_evaluate_model(model, X_train, X_test, y_train, y_test):
+    try:
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred)
+        recall = recall_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred)
+
+        print(f'Accuracy: {accuracy:.4f}')
+        print(f'Precision: {precision:.4f}')
+        print(f'Recall: {recall:.4f}')
+        print(f'F1 Score: {f1:.4f}')
+    except Exception as e:
+        print(f"Error training or evaluating model: {e}")
+
+# Initialize the classifiers
+nb_model = MultinomialNB()
+lr_model = LogisticRegression(max_iter=1000)
+svm_model = SVC()
+
+# Train and evaluate Naive Bayes model
+print("Naive Bayes Model:")
+train_and_evaluate_model(nb_model, X_train_tfidf, X_test_tfidf, y_train, y_test)
+
+# Train and evaluate Logistic Regression model
+print("\nLogistic Regression Model:")
+train_and_evaluate_model(lr_model, X_train_tfidf, X_test_tfidf, y_train, y_test)
+
+# Train and evaluate SVM model
+print("\nSupport Vector Machine Model:")
+train_and_evaluate_model(svm_model, X_train_tfidf, X_test_tfidf, y_train, y_test)
+
